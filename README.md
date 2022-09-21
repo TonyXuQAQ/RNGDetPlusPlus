@@ -97,3 +97,4 @@ We thank the following open-sourced projects:
 
 
 ## License
+GNU General Public License v3.0
