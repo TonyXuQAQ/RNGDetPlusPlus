@@ -1,7 +1,7 @@
 # RNGDet++
 This is the official repo of paper **RNGDet++: Road Network Graph Detection by Transformer with Instance Segmentation and Multi-scale Features Enhancement** by Zhenhua Xu, Yuxuan Liu, Yuxiang Sun, Ming Liu and Lujia Wang.
 
-# Supplementary materials
+## Supplementary materials
 For the demo video and supplementary document, please visit our [project page](https://tonyxuqaq.github.io/projects/RNGDetPlusPlus/).
 
 ## Update 
