@@ -78,7 +78,7 @@ For APLS metrics, run
 ```
 ./apls.bash
 ```
-Remember to set the path of predicted graphs in bash scripted.
+Remember to set the path of predicted graphs in bash scripts.
 
 **Note**: Evaluation metric scripts are not runnable in docker container. Please use them outside docker.
 
