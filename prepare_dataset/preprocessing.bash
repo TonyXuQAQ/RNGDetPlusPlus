@@ -7,8 +7,8 @@ mv ./data ../
 
 # Generate label
 echo "Generating labels ..."
-python3 create_label.py
-python3 data_split.py
+python create_label.py
+python data_split.py
 echo "Finsh generating labels!"
 
 # Get pretrained checkpoints
