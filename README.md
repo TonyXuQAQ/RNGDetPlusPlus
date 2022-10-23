@@ -43,6 +43,10 @@ cd prepare_dataset
 ./preprocessing.bash
 ```
 
+### Update Oct/23/2022
+The raw data download link provided by MIT is invalid now. We update the data to Google Drive.
+
+
 ## Train
 Comming soon...
 

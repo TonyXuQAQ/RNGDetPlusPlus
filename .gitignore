@@ -12,6 +12,8 @@ RNGDet
 RNGDet_*
 .vscode
 data
+data_raw
+*.zip
 
 # for inference
 main_sample.py
