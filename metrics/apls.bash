@@ -1,6 +1,6 @@
 declare -a arr=(8 9 19 28 29 39 48 49 59 68 69 79 88 89 99 108 109 119 128 129 139 148 149 159 168 169 179)
 
-# output directory
+# source directory
 dir=RNGDet/test
 
 echo $dir

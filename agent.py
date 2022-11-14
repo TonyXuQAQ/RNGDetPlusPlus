@@ -7,7 +7,6 @@ import random
 import json
 from scipy.spatial import cKDTree
 from PIL import Image, ImageDraw
-import random
 from skimage import measure
 
 class FrozenClass():
@@ -302,6 +301,7 @@ class Agent(FrozenClass):
         # zero prediction
         if not len(pred_coords_world) or self.LS_counter>30:
             self.LS_counter = 0
+            self.historical_vertices.append(self.current_coord)
             self.pop()
             return
         # multiple predictions
