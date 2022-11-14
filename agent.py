@@ -301,7 +301,8 @@ class Agent(FrozenClass):
         # zero prediction
         if not len(pred_coords_world) or self.LS_counter>30:
             self.LS_counter = 0
-            self.historical_vertices.append(self.current_coord)
+            if self.current_coord[0]>=50 and self.current_coord[0]<=self.image_size-50 and self.current_coord[1]>=50 and self.current_coord[1]<=self.image_size-50:
+                self.historical_vertices.append(self.current_coord)
             self.pop()
             return
         # multiple predictions
