@@ -88,6 +88,8 @@ Remember to set the path of predicted graphs in bash scripts.
 
 **Note**: Evaluation metric scripts are not runnable in docker container. Please use them outside docker.
 
+**Note**: Due to the randomness of RNGDet++ and evaluation metrics, the actual evaluation results might be slight different from the reported numbers in the paper.
+
 
 ## Contact
 For any questions, please open an issue.
