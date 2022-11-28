@@ -1,12 +1,16 @@
 # RNGDet++
 This is the official repo of paper **RNGDet++: Road Network Graph Detection by Transformer with Instance Segmentation and Multi-scale Features Enhancement** by Zhenhua Xu, Yuxuan Liu, Yuxiang Sun, Ming Liu and Lujia Wang.
 
-**Note:** The implementation code of sampling and training will be released in a later stage. Only inference is open-sourced currently.
+<!-- **Note:** The implementation code of sampling and training will be released in a later stage. Only inference is open-sourced currently. -->
 
 ## Supplementary materials
 For the demo video and supplementary document, please visit our [project page](https://tonyxuqaq.github.io/projects/RNGDetPlusPlus/).
 
 ## Update 
+Nov/28/2022: Release the initial version training code
+
+Oct/23/2022: Update the Sat2Graph City-Scale dataset onto Google drive, since the raw data link provided by Sat2Graph is not valid any longer.
+
 Sep/21/2022: Release the inference code
 
 ## Platform info
@@ -49,24 +53,45 @@ cd prepare_dataset
 The raw data download link provided by MIT is invalid now. We update the data to Google Drive.
 
 
+## Sample
+
+Before training, run the sampler to generate traing samplers:
+```
+./bash/run_sampler.sh
+```
+Parameters:
+- ```edge_move_ahead_length``` (int, default=30): Max distance(pixels) moving ahead in each step.
+- ```noise``` (int, default=8): Max random noise added during the sampling process (uniform distribution noise).
+- ```max_num_frame``` (int, default=10000): Max number of samples generated for each large aerial image.
+
 ## Train
-Comming soon...
+
+To train RNGDet, run 
+```
+./bash/run_train_RNGDet.sh
+```
+
+To train RNGDet++, run 
+```
+./bash/run_train_RNGDet++.sh
+```
+**Note**: Due to the randomness existing in both sampling and training, the final performance of the proposed models might be slightly different from the number reported in the paper. Please open an issue if you cannot produce the results.
 
 ## Inference
 To try RNGDet, run 
 ```
-./bash/run_test_RNGDet.bash
+./bash/run_test_RNGDet.sh
 ```
 
 To try RNGDet++, run 
 ```
-./bash/run_test_RNGDet++.bash
+./bash/run_test_RNGDet++.sh
 ```
 
 Parameters:
 - ```candidate_filter_threshold``` (int, default=30): The distance threshold to filter initial candidated obtained from segmentation heatmap peaks. If one peak is too closed to the road network graph detected so far, it is filtered out.
 - ```logit_threshold``` (float,0~1,default=0.75): The threshold to filter invalid vertices in the next step.
-- ```extract_candidate_threshold``` (floar,0~1,default=0.7): The threshold to detect local peaks in the segmentation heatmap to find initial candidates.
+- ```extract_candidate_threshold``` (float,0~1,default=0.7): The threshold to detect local peaks in the segmentation heatmap to find initial candidates.
 - ```alignment_distance``` (int, default=5): The distance threshold for graph merge and alignment. If a predicted vertex is too closed to predicted key vertices in the past, they are merged. 
 - ```instance_seg``` (bool, default=False): Whether the instance segmentation head is used.
 - ```multi_scale``` (bool, default=False): Whether multi-scale features are used.
@@ -102,7 +127,16 @@ We thank the following open-sourced projects:
 [DETR](https://github.com/facebookresearch/detr)
 
 ## Citation
-
+```
+@article{xu2022rngdet++,
+  title={RNGDet++: Road Network Graph Detection by Transformer with Instance Segmentation and Multi-scale Features Enhancement},
+  author={Xu, Zhenhua and Liu, Yuxuan and Sun, Yuxiang and Liu, Ming and Wang, Lujia},
+  journal={arXiv preprint arXiv:2209.10150},
+  year={2022}
+}
+```
 
 ## License
 GNU General Public License v3.0
+
+Not allowed for commercial purposes. Only for academic research.

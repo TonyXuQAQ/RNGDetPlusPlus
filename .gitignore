@@ -16,11 +16,11 @@ data_raw
 *.zip
 
 # for inference
-main_sample.py
-main_train.py
-main_val.py
-sampler.py
-dataset.py
-bash/run_sample.sh
-bash/run_train_*
-bash/run_tensorboard.bash
+# main_sample.py
+# main_train.py
+# main_val.py
+# sampler.py
+# dataset.py
+# bash/run_sample.sh
+# bash/run_train_*
+# bash/run_tensorboard.bash
