@@ -53,9 +53,9 @@ cd prepare_dataset
 The raw data download link provided by MIT is invalid now. We update the data to Google Drive.
 
 
-## Sample
+## Sampling
 
-Before training, run the sampler to generate traing samplers:
+Before training, run the sampler to generate traing samples:
 ```
 ./bash/run_sampler.sh
 ```
