@@ -1,0 +1,27 @@
+*.pdf
+*.json
+*.pth
+*.png
+temp_*
+__pycache__
+models/detr/__pycache__
+models/utils/__pycache__
+log
+vis
+RNGDet
+RNGDet_*
+.vscode
+data
+data_raw
+*.zip
+pretrain_*
+
+# for inference
+# main_sample.py
+# main_train.py
+# main_val.py
+# sampler.py
+# dataset.py
+# bash/run_sample.sh
+# bash/run_train_*
+# bash/run_tensorboard.bash

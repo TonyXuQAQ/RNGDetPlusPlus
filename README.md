@@ -7,6 +7,8 @@ This is the official repo of paper **RNGDet++: Road Network Graph Detection by T
 For the demo video and supplementary document, please visit our [project page](https://tonyxuqaq.github.io/projects/RNGDetPlusPlus/).
 
 ## Update 
+Dec/23/2022: Add SpaceNet dataset
+
 Nov/28/2022: Release the initial version training code
 
 Oct/23/2022: Update the Sat2Graph City-Scale dataset onto Google drive, since the raw data link provided by Sat2Graph is not valid any longer.
@@ -29,7 +31,7 @@ Docker 20.10.7
 Nvidia-driver 495.29.05
 ```
 ## Docker 
-This repo is implemented in the docker container. Make sure you have docker installed. Please refer to [install Docker](https://docs.docker.com/engine/install/ubuntu/) and [Docker beginner tutorial](https://docker-curriculum.com/) for more information.
+This repo is implemented in the docker container. **All experiments except evaluation are conducted within docker containers**. Make sure you have docker installed. Please refer to [install Docker](https://docs.docker.com/engine/install/ubuntu/) and [Docker beginner tutorial](https://docker-curriculum.com/) for more information.
 
 ### Docker image
 ```
@@ -39,8 +41,11 @@ cd docker
 ### Docker container
 In ```./build_continer.bash```, set ```RNGDet_dir``` as the directory of this repo.
 ```
-./build_continer.bash
+./build_continer_cityscale.bash # to try city scale dataset released by Sat2Graph
+./build_continer_spacenet.bash # to try SpaceNet dataset 
 ```
+**Note** We keep the raw code for the city scale dataset. For the new added spacenet dataset, we modify the processing stripts to better fit RNGDet++ to it, since the spacenet dataset has smaller images covering smaller regions, which has quite different characteristics with that of the city scale dataset. 
+
 
 ## Data preparation and pretrained checkpoints
 Run the follow commands to prepare the dataset and pretrained checkpoints of RNGDet and RNGDet++.
@@ -52,6 +57,8 @@ cd prepare_dataset
 ### Update Oct/23/2022
 The raw data download link provided by MIT is invalid now. We update the data to Google Drive.
 
+### Update Dec/24/2022
+The script to download the data from Google Drive is blocked. Please manually download the data and put it into ```prepare_dataset```. The Google Drive link could be found in the comment line in ```./prepare_dataset/preprocessing.bash```
 
 ## Sampling
 
@@ -100,7 +107,7 @@ Parameters:
 Note: We provide the parameter setting in inference scripts of RNGDet and RNGDet++ in ```./bash``` that achieve the best performance.
 
 ## Evaluation
-Go to ```metrics```. For TOPO metrics, run
+Go to ```{{ DATASET_NAME }}/metrics```. For TOPO metrics, run
 ```
 ./topo.bash
 ```

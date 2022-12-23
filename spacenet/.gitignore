@@ -14,6 +14,10 @@ RNGDet_*
 data
 data_raw
 *.zip
+RGB_1.0_meter
+sat2graph_spacenet_output
+test
+pretrain_*
 
 # for inference
 # main_sample.py

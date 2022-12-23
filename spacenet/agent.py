@@ -1,0 +1,320 @@
+from ctypes import alignment
+import enum
+import numpy as np
+import torch
+import os
+import random
+import json
+from scipy.spatial import cKDTree
+from PIL import Image, ImageDraw
+from skimage import measure
+
+class FrozenClass():
+        __isfrozen = False
+        def __setattr__(self, key, value):
+            if self.__isfrozen and not hasattr(self, key):
+                raise TypeError( "%r is a frozen class" % self )
+            object.__setattr__(self, key, value)
+
+        def _freeze(self):
+            self.__isfrozen = True
+
+class Agent(FrozenClass):
+    def __init__(self,args,network,image_name):
+        # args
+        self.args = args
+        self.image_size = args.image_size
+        self.crop_size = args.ROI_SIZE
+        self.pad_size = args.ROI_SIZE
+        # counters 
+        self.step_counter = 0
+        self.LS_counter = 0
+        # data
+        self.sat_image = None
+        self.vertices = {}
+        self.edges = {}
+        self.network = network
+        # state
+        self.mode = 'vertex_mode'
+        self.finish_current_image = False
+        self.current_coord = None
+        self.previous_coord = None
+        self.counter_map = np.zeros((self.image_size,self.image_size))
+        # historical info
+        self.historical_map = np.zeros((self.image_size,self.image_size))
+        self.historical_map = np.pad(self.historical_map,np.array(((self.pad_size,self.pad_size),(self.pad_size,self.pad_size))),'constant')
+        self.historical_vertices = []
+        self.historical_edges = []
+        # buffer
+        self.candidate_initial_vertices = []
+        self.extracted_candidate_initial_vertices = []
+        
+        self.load_data_and_initialization(image_name)
+        self.__setup_seed(20)
+        self._freeze()
+
+    def __setup_seed(self,seed):
+        '''
+        Random seed
+
+        :param seed (int): seed
+        '''
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+        
+    def load_data_and_initialization(self,tile_name):
+        '''
+        Load data and initialize env.
+
+        :param image_name (str): name of input image
+        '''
+        # load images
+        self.sat_image = np.array(Image.open(os.path.join(self.args.dataroot,f'RGB_1.0_meter/{tile_name}__rgb.png')))
+        self.sat_image = np.pad(self.sat_image,np.array(((self.pad_size,self.pad_size),(self.pad_size,self.pad_size),(0,0))),'constant')
+       
+        # get initial candidates
+        self.get_candidate_initial_vertices_from_local_peaks(tile_name)
+        # initialization
+        self.pop()
+    
+    def get_candidate_initial_vertices_from_local_peaks(self,name):
+        '''
+        Generate candidate initial vertices from predicted point segmentation heatmap 
+
+        :param image_name (str): name of input image
+        '''
+        # print(f'Start segmentation stitching of image {name}')
+        try:
+            with open(f'./{self.args.agent_savedir}/segmentation/{name}.json','r') as jf:
+                self.extracted_candidate_initial_vertices = json.load(jf)
+        except:
+            h, w = self.sat_image.shape[:2]
+            binary_mask = np.zeros((self.image_size+self.pad_size*2,self.image_size+self.pad_size*2))
+            point_mask = np.zeros((self.image_size+self.pad_size*2,self.image_size+self.pad_size*2))
+            for i in range(self.image_size//self.crop_size+1):
+                for j in range(self.image_size//self.crop_size+1):
+                    row_l = min(self.pad_size//2+i*self.crop_size,self.image_size+self.pad_size*2+self.crop_size//2)
+                    col_l = min(self.pad_size//2+j*self.crop_size,self.image_size+self.pad_size*2+self.crop_size//2)
+                    sat_ROI = self.sat_image[row_l:row_l+self.crop_size,\
+                            col_l:col_l+self.crop_size]
+                    historical_ROI = self.historical_map[row_l:row_l+self.crop_size,\
+                            col_l:col_l+self.crop_size]
+                    sat_ROI = torch.FloatTensor(sat_ROI).permute(2,0,1).unsqueeze(0).cuda() / 255.0
+                    historical_ROI = torch.FloatTensor(historical_ROI).unsqueeze(0).unsqueeze(0).cuda()
+                    outputs = self.network(sat_ROI,historical_ROI)
+                    pred_mask = (outputs['pred_masks'].sigmoid()[0,0].cpu().detach().numpy()*255).astype(np.uint8)
+                    pred_point = (outputs['pred_masks'].sigmoid()[0,1].cpu().detach().numpy()*255).astype(np.uint8)
+                    binary_mask[row_l:row_l+self.crop_size,\
+                            col_l:col_l+self.crop_size] = pred_mask
+                    point_mask[row_l:row_l+self.crop_size,\
+                            col_l:col_l+self.crop_size] = pred_point
+            Image.fromarray(binary_mask.astype(np.uint8)).convert('RGB').save(f'./{self.args.agent_savedir}/segmentation/{name}_segment.png')
+            Image.fromarray(point_mask.astype(np.uint8)).convert('RGB').save(f'./{self.args.agent_savedir}/segmentation/{name}_point.png')
+            self.extract_initial_candidates(point_mask[self.pad_size:-self.pad_size,self.pad_size:-self.pad_size],thr=self.args.extract_candidate_threshold)
+            
+            image = Image.fromarray(point_mask[self.pad_size:-self.pad_size,self.pad_size:-self.pad_size].astype(np.uint8)).convert('RGB')
+            draw = ImageDraw.Draw(image)
+            for v in self.extracted_candidate_initial_vertices:
+                draw.ellipse([v[0]-5,v[1]-5,v[0]+5,v[1]+5],fill='red')
+            image.save(f'./{self.args.agent_savedir}/segmentation/{name}_point_vis.png')
+            with open(f'./{self.args.agent_savedir}/segmentation/{name}.json','w') as jf:
+                json.dump(self.extracted_candidate_initial_vertices,jf)
+        
+        print(f'{len(self.extracted_candidate_initial_vertices)} initial candidates extracted from the segmentation map...')
+        if len(self.extracted_candidate_initial_vertices)==0:
+            self.finish_current_image = True
+
+    def extract_initial_candidates(self,image,thr=0.5):
+        '''
+        Extract initial vertex candidates from point segmentation heatmap
+
+        :param image (np.array, self.image_size*self.image_size): a world coord
+        :param thr (float): threshold for thresholding
+
+        '''
+        image = (image>thr*255).astype(np.uint8)
+        labels = measure.label(image, connectivity=2)
+        props = measure.regionprops(labels)
+        max_area = 16
+        for region in props:
+            if region.area > max_area:
+                center_point = region.centroid[::-1]
+                self.extracted_candidate_initial_vertices.append([int(x) for x in center_point])
+
+    def crop_ROI(self,v):
+        '''
+        Crop ROI
+
+        :param v (list, length=2): a world coord
+        :return sat_ROI (np.array, size=(self.crop_size,self.crop_size,3)): cropped sat image
+        :return historical_map_ROI (np.array, size=(self.crop_size,self.crop_size,3)): cropped historical map
+        '''
+        sat_ROI = self.sat_image[v[1]+self.crop_size//2:v[1]+self.crop_size//2*3,v[0]+self.crop_size//2:v[0]+self.crop_size//2*3,:]
+        historical_map_ROI = self.historical_map[v[1]+self.crop_size//2:v[1]+self.crop_size//2*3,v[0]+self.crop_size//2:v[0]+self.crop_size//2*3]
+        
+        return sat_ROI, historical_map_ROI
+    
+    def filter_candidate_initial_vertices(self):
+        '''
+        Remove candidate initial vertices that too closed to historical graph (explored pixels)
+
+        '''
+        explored_pixels = np.where(self.historical_map[self.pad_size:-self.pad_size,self.pad_size:-self.pad_size]!=0)
+        explored_pixels = [[explored_pixels[1][x], explored_pixels[0][x]] for x in range(len(explored_pixels[0]))]
+        if len(explored_pixels):
+            tree = cKDTree(explored_pixels)
+            if len(self.extracted_candidate_initial_vertices):
+                dds, iis = tree.query(self.extracted_candidate_initial_vertices,k=1)
+                self.extracted_candidate_initial_vertices = [v for i,v in enumerate(self.extracted_candidate_initial_vertices) if dds[i]>self.args.candidate_filter_threshold]
+        
+    def pop(self):
+        '''
+        Pop one candidate initial vertex from the buffer
+
+        '''
+        if not len(self.candidate_initial_vertices):
+            self.filter_candidate_initial_vertices()
+            if len(self.extracted_candidate_initial_vertices):
+                self.candidate_initial_vertices.append(self.extracted_candidate_initial_vertices.pop(0))
+            else:
+                self.finish_current_image = True
+                return
+
+        self.mode = 'vertex_mode'
+        self.current_coord = self.candidate_initial_vertices.pop(0)
+        return
+                
+
+    def update_historical_map(self,src,dst):
+        '''
+        Update the historical map by adding a line starting from src to dst.
+
+        :param src (list, length=2): src point of the added line
+        :param dst (list, length=2): src point of the added line
+        '''
+        src = np.array(src)
+        dst = np.array(dst)
+        self.counter_map[dst[1],dst[0]] += 1 
+        p = src
+        d = dst - src
+        N = np.max(np.abs(d))
+        self.historical_map[src[1]+self.pad_size,src[0]+self.pad_size] = 255
+        self.historical_map[dst[1]+self.pad_size,dst[0]+self.pad_size] = 255
+        if N:
+            s = d / (N)
+            for i in range(0,N):
+                p = p + s
+                self.historical_map[int(round(p[1]+self.pad_size)),int(round(p[0]+self.pad_size))] = 255
+               
+
+    def get_valid_coords(self,pred_logits,pred_coords,thr=0.5):
+        '''
+        Convert predictions to vertex coordinates.
+
+        :param pred_logits (tensor, shape=(1,args.num_queries,2)): logits of predicted vertices
+        :param pred_coords (tensor, shape=(1,args.num_queries,2)): coords of predicted vertices
+        :param thr (float): threshold for logits thresholding
+        :return output_pred_coords_ROI(list): valid predicted vertices in the next step in the ROI coordinate (cropped ROI whose size is args.crop_size*self.crop_size)
+        :return output_pred_coords_world(list): valid predicted vertices in the next step in the world coordinate 
+        '''
+        # transformation within ROI
+        pred_coords_ROI = pred_coords[0].cpu().detach().numpy().tolist()
+        pred_coords_ROI = [[x[0]*(self.crop_size//2)+self.crop_size//2,x[1]*(self.crop_size//2)+self.crop_size//2] for x in pred_coords_ROI]
+        
+        # find valid coords
+        pred_logits = pred_logits[0].softmax(dim=1)
+        temp_pred_coords_ROI = []
+        for ii, coord in enumerate(pred_coords_ROI):
+            if pred_logits[ii][0] >= thr:
+                temp_pred_coords_ROI.append(coord)
+        
+        temp_pred_coords_ROI = [[max(0,min(self.crop_size-1,int(y))) for y in x] for x in temp_pred_coords_ROI if x[0]>=0 and x[0]<=self.crop_size-1 and x[1]>=0 and x[1]<=self.crop_size-1]
+        
+
+        # filter coord by angle
+        pred_coords_ROI = temp_pred_coords_ROI.copy()
+        for ii, v in enumerate(temp_pred_coords_ROI[:-1]):
+            for u in temp_pred_coords_ROI[ii+1:]:
+                vector_v = np.array(v) - np.array([self.crop_size//2,self.crop_size//2])
+                vector_u = np.array(u) - np.array([self.crop_size//2,self.crop_size//2])
+                norm_v = np.linalg.norm(vector_v)
+                norm_u = np.linalg.norm(vector_u)
+                if not norm_v:
+                    if v in pred_coords_ROI:
+                        pred_coords_ROI.remove(v)
+                else:
+                    vector_v = vector_v / norm_v
+                if not norm_u:
+                    if u in pred_coords_ROI:
+                        pred_coords_ROI.remove(u)
+                else:
+                    vector_u = vector_u / norm_u
+                if vector_v.dot(vector_u)>0.99 and norm_u and norm_v:
+                    if u in pred_coords_ROI:
+                        pred_coords_ROI.remove(u)
+
+        # from ROI to world
+        pred_coords_world = [[int(x[0]+self.current_coord[0]-self.crop_size//2),int(x[1]+self.current_coord[1]-self.crop_size//2)] for x in pred_coords_ROI]
+        # pred_coords_world = [v for v in pred_coords_world if v[0]>=35 and v[1]>=35 and v[0]<self.image_size-35 and v[1]<self.image_size-35]
+        pred_coords_world = [[min(self.image_size-1,max(0,y)) for y in x] for x in pred_coords_world]
+
+        # alignment
+        
+
+        if len(self.historical_vertices):
+            tree = cKDTree(self.historical_vertices)
+            for i, v in enumerate(pred_coords_world):
+                dd, ii = tree.query(v,k=1)
+                if dd < self.args.alignment_distance and (self.historical_vertices[ii]!=self.current_coord):
+                    pred_coords_world[i] = self.historical_vertices[ii]
+        
+        # remove coords that are not moving or filtered
+        output_pred_coords_world = [v for i,v in enumerate(pred_coords_world) if v!=self.current_coord and self.counter_map[v[1],v[0]]<10]
+
+        # world to ROI
+        output_pred_coords_ROI = [[v[0]-self.current_coord[0]+self.crop_size//2,v[1]-self.current_coord[1]+self.crop_size//2] for v in output_pred_coords_world]
+        
+        return output_pred_coords_ROI, output_pred_coords_world
+
+    def step(self, pred_logits, pred_coords, thr=0.6):
+        '''
+        Agent moves function. There could be zero, one or multiple predicted vertices in the next step. The agent should take
+        corresponding actions depending on the predictions.
+
+        :param pred_logits (tensor, shape=(1,args.num_queries,2)): logits of predicted vertices
+        :param pred_coords (tensor, shape=(1,args.num_queries,2)): coords of predicted vertices
+        :param thr (float): threshold for logits thresholding
+        :return pred_coords_ROI (list): valid predicted vertices in the next step in the ROI coordinate
+        '''
+        pred_coords_ROI, pred_coords_world = self.get_valid_coords(pred_logits, pred_coords, thr=thr)
+
+        # intersection mode
+        self.LS_counter += 1
+        # zero prediction
+        if not len(pred_coords_world) or self.LS_counter>30:
+            self.LS_counter = 0
+            self.historical_vertices.append(self.current_coord)
+            self.pop()
+            return
+        # multiple predictions
+        elif len(pred_coords_world) > 1:
+            # transformation
+            for ii, pred_coord_world in enumerate(pred_coords_world):
+                self.candidate_initial_vertices.append(pred_coord_world)
+                self.update_historical_map(self.current_coord,pred_coord_world)
+                self.historical_edges.append([[int(x) for x in self.current_coord],[int(x) for x in pred_coord_world]])
+                self.historical_vertices.append(pred_coord_world)
+            self.historical_vertices.append(self.current_coord)
+            self.pop()
+            return pred_coords_ROI
+        # line-segment mode, one prediction
+        elif len(pred_coords_world) == 1:
+            pred_coord_world = pred_coords_world[0]
+            self.previous_coord = self.current_coord
+            self.current_coord = pred_coord_world
+            self.update_historical_map(self.current_coord,self.previous_coord)
+            self.historical_edges.append([[int(x) for x in self.current_coord],[int(x) for x in self.previous_coord]])
+            return pred_coords_ROI

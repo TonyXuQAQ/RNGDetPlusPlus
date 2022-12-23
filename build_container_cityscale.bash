@@ -8,12 +8,12 @@ then
 fi
 
 # Set the directory here
-RNGDet_dir=/home/tonyx/final_repo/InstanceRNGDet
+RNGDet_dir=/home/tonyx/final_repo/RNGDetPlusPlus/cityscale
 
 home_dir=$RNGDet_dir
 dataset_dir=$RNGDet_dir/data
-container_name=RNGDetplusplus
-port_number=5050
+container_name=RNGDetplusplus2
+port_number=5051
 
 docker run \
 	-v $home_dir:/tonyxu\
@@ -24,4 +24,4 @@ docker run \
 	-p $port_number:6006\
 	--rm -it zhxu_1.8.0-cuda11.1-cudnn8_py3.8 $CMD
 
-docker attach RNGDetplusplus
+docker attach RNGDetplusplus2
