@@ -7,6 +7,8 @@ This is the official repo of paper **RNGDet++: Road Network Graph Detection by T
 For the demo video and supplementary document, please visit our [project page](https://tonyxuqaq.github.io/projects/RNGDetPlusPlus/).
 
 ## Update 
+Mar/1/2023: Paper accepted by RA-L.
+
 Dec/23/2022: Add SpaceNet dataset
 
 Nov/28/2022: Release the initial version training code
