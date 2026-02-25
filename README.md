@@ -62,6 +62,9 @@ The raw data download link provided by MIT is invalid now. We update the data to
 ### Update Dec/24/2022
 The script to download the data from Google Drive is blocked. Please manually download the data and put it into ```prepare_dataset```. The Google Drive link could be found in the comment line in ```./prepare_dataset/preprocessing.bash```
 
+### Update Feb/25/2026
+Google Drive links have failed. Please download all data and checkpoints manually from https://cloud.tsinghua.edu.cn/d/d32cb7d4b19046ed9a42/.
+
 ## Sampling
 
 Before training, run the sampler to generate traing samples:
