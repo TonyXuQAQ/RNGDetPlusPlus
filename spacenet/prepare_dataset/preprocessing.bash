@@ -1,6 +1,8 @@
 # Download spacenet3 dataset
 # if you cannot download this by script, download it manually at https://drive.google.com/file/d/1FiZVkEEEVir_iUJpEH5NQunrtlG0Ff1W/view?usp=share_link
-gdown https://drive.google.com/uc?id=1FiZVkEEEVir_iUJpEH5NQunrtlG0Ff1W
+
+#gdown https://drive.google.com/uc?id=1FiZVkEEEVir_iUJpEH5NQunrtlG0Ff1W
+# !!!!!!!!!1 Google Drive links have failed, download it manually from https://cloud.tsinghua.edu.cn/d/d32cb7d4b19046ed9a42/ !!!!!!!!!!!!!
 unzip RGB_1.0_meter_full.zip
 # rm -rf RGB_1.0_meter_full.zip 
 mkdir -p ../data
@@ -14,7 +16,8 @@ python3 create_label.py
 
 # Get pretrained checkpoints
 # if you cannot download this by script, download it manually at https://drive.google.com/file/d/1RAhy-CzRfYURwDPDbBdfksRxCttaJTQV/view?usp=share_link
-gdown https://drive.google.com/uc?id=1RAhy-CzRfYURwDPDbBdfksRxCttaJTQV
+# gdown https://drive.google.com/uc?id=1RAhy-CzRfYURwDPDbBdfksRxCttaJTQV
+# !!!!!!!!!1 Google Drive links have failed, download it manually from https://cloud.tsinghua.edu.cn/d/d32cb7d4b19046ed9a42/ !!!!!!!!!!!!!
 unzip pretrain_spacenet.zip
 rm -rf pretrain_spacenet.zip 
 
