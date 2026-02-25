@@ -137,11 +137,34 @@ We thank the following open-sourced projects:
 
 ## Citation
 ```
-@article{xu2022rngdet++,
-  title={RNGDet++: Road Network Graph Detection by Transformer with Instance Segmentation and Multi-scale Features Enhancement},
+@article{xu2023rngdet++,
+  title={Rngdet++: Road network graph detection by transformer with instance segmentation and multi-scale features enhancement},
   author={Xu, Zhenhua and Liu, Yuxuan and Sun, Yuxiang and Liu, Ming and Wang, Lujia},
-  journal={arXiv preprint arXiv:2209.10150},
-  year={2022}
+  journal={IEEE Robotics and Automation Letters},
+  volume={8},
+  number={5},
+  pages={2991--2998},
+  year={2023},
+  publisher={IEEE}
+}
+@article{xu2022rngdet,
+  title={Rngdet: Road network graph detection by transformer in aerial images},
+  author={Xu, Zhenhua and Liu, Yuxuan and Gan, Lu and Sun, Yuxiang and Wu, Xinyu and Liu, Ming and Wang, Lujia},
+  journal={IEEE Transactions on Geoscience and Remote Sensing},
+  volume={60},
+  pages={1--12},
+  year={2022},
+  publisher={IEEE}
+}
+@article{xu2021icurb,
+  title={icurb: Imitation learning-based detection of road curbs using aerial images for autonomous driving},
+  author={Xu, Zhenhua and Sun, Yuxiang and Liu, Ming},
+  journal={IEEE Robotics and Automation Letters},
+  volume={6},
+  number={2},
+  pages={1097--1104},
+  year={2021},
+  publisher={IEEE}
 }
 ```
 
